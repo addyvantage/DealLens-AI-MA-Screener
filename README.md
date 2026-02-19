@@ -59,7 +59,7 @@ The system is instrumented for production visibility:
 Standardized health checks ensure:
 - **Service Readiness**: Verifies DB and Redis connections before accepting traffic.
 - **Runtime Liveness**: Detects deadlocks or frozen processes.
-- **System Deployability**: automated rollout gates in CI/CD pipelines.
+- **Service Deployability**: Runtime-level health checks to validate database and Redis connectivity prior to accepting screening jobs.
 
 ## 7. Async Screening-Oriented Runtime Design
 
