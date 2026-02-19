@@ -413,6 +413,17 @@ async def fetch_newsapi_data(endpoint: str, **params) -> Optional[Dict]:
         return None
 
 
+async def fetch_news_data(query: Optional[str] = None, **params) -> Optional[Dict]:
+    """Wrapper for fetch_newsapi_data to handle query/endpoint logic."""
+    endpoint = "everything" if query else "top-headlines"
+    if query:
+        params["q"] = query
+    # Default country to us for top-headlines if no query
+    if endpoint == "top-headlines" and "country" not in params and "category" not in params:
+        params["country"] = "us"
+    return await fetch_newsapi_data(endpoint, **params)
+
+
 async def generate_openai_insight(prompt: str, max_tokens: int = 1000) -> Optional[Dict]:
     """Generate AI insight using OpenAI API."""
     if not OPENAI_API_KEY:
@@ -580,4 +591,7 @@ def clean_financial_data(data: Dict) -> Dict:
         else:
             cleaned[key] = value
     
-    return cleaned
+
+# Aliases for backward compatibility
+deduplicate_news_items = deduplicate_news
+openai_chat_completion = generate_openai_insight

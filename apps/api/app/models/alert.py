@@ -94,3 +94,36 @@ class Alert(Base):
         Index('ix_alerts_triggered_at', 'triggered_at'),
         Index('ix_alerts_created_at', 'created_at'),
     )
+
+
+class AlertHistory(Base):
+    __tablename__ = "alert_history"
+
+    id = Column(String, primary_key=True, index=True)
+    alert_id = Column(String, ForeignKey("alerts.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    
+    # Trigger details
+    triggered_at = Column(DateTime(timezone=True), nullable=False)
+    trigger_value = Column(String, nullable=True)  # Value that triggered the alert
+    trigger_data = Column(JSON, nullable=True)  # Snapshot of data at trigger time
+    
+    # Notification status
+    notification_sent = Column(Boolean, default=False)
+    notification_sent_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    alert = relationship("Alert", backref="history")
+    user = relationship("User", backref="alert_history")
+    
+    # Indexes
+    __table_args__ = (
+        Index('ix_alert_history_alert_id', 'alert_id'),
+        Index('ix_alert_history_user_id', 'user_id'),
+        Index('ix_alert_history_triggered_at', 'triggered_at'),
+        Index('ix_alert_history_created_at', 'created_at'),
+    )

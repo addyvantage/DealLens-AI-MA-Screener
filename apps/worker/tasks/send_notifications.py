@@ -8,7 +8,8 @@ from .utilities import (
     get_db_session, 
     generate_id,
     cache_set,
-    cache_get
+    cache_get,
+    run_async_task
 )
 
 logger = logging.getLogger(__name__)
@@ -16,12 +17,12 @@ logger = logging.getLogger(__name__)
 # Import models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api/src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api'))
 
-from models.alerts import Alert, AlertHistory
-from models.users import User
-from models.companies import Company
-from models.deals import Deal
+from app.models.alert import Alert, AlertHistory
+from app.models.user import User
+from app.models.company import Company
+from app.models.deal import Deal
 
 
 # Mock email service - in production, replace with actual email provider
@@ -100,12 +101,12 @@ def send_alert_notification(self, alert_history_id: str) -> Dict[str, Any]:
             # Send email notification
             if notification_prefs.get("email", True) and user.email:
                 try:
-                    email_sent = await EmailService.send_email(
+                    email_sent = run_async_task(EmailService.send_email(
                         to_email=user.email,
                         subject=notification_content["email_subject"],
                         body=notification_content["email_body"],
                         html_body=notification_content.get("email_html")
-                    )
+                    ))
                     results["email_sent"] = email_sent
                     logger.info(f"Email sent to {user.email}")
                 except Exception as e:
@@ -115,12 +116,12 @@ def send_alert_notification(self, alert_history_id: str) -> Dict[str, Any]:
             # Send push notification
             if notification_prefs.get("push", True):
                 try:
-                    push_sent = await PushNotificationService.send_push(
+                    push_sent = run_async_task(PushNotificationService.send_push(
                         user_id=user.id,
                         title=notification_content["push_title"],
                         body=notification_content["push_body"],
                         data=notification_content.get("push_data", {})
-                    )
+                    ))
                     results["push_sent"] = push_sent
                     logger.info(f"Push notification sent to user {user.id}")
                 except Exception as e:
@@ -344,12 +345,12 @@ def send_daily_digest(self, user_ids: List[str] = None) -> Dict[str, Any]:
                     
                     if digest_content:
                         # Send digest email
-                        email_sent = await EmailService.send_email(
+                        email_sent = run_async_task(EmailService.send_email(
                             to_email=user.email,
                             subject=digest_content["subject"],
                             body=digest_content["body"],
                             html_body=digest_content.get("html_body")
-                        )
+                        ))
                         
                         if email_sent:
                             # Mark as sent
@@ -506,12 +507,12 @@ def send_weekly_summary(self, user_ids: List[str] = None) -> Dict[str, Any]:
                     summary_content = self._build_weekly_summary(db, user)
                     
                     if summary_content:
-                        email_sent = await EmailService.send_email(
+                        email_sent = run_async_task(EmailService.send_email(
                             to_email=user.email,
                             subject=summary_content["subject"],
                             body=summary_content["body"],
                             html_body=summary_content.get("html_body")
-                        )
+                        ))
                         
                         if email_sent:
                             cache_set(cache_key, True, ttl=604800)  # 7 days

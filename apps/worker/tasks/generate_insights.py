@@ -17,14 +17,18 @@ from .utilities import (
 logger = logging.getLogger(__name__)
 
 # Import models
+# sys.path hack is handled in celery_app.py but keeping for standalone run safety
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api/src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api'))
 
-from models.companies import Company, OHLCData
-from models.news import NewsArticle
-from models.ai_insights import AIInsight
-from models.deals import Deal
+from app.models.company import Company
+from app.models.market_data import MarketData
+from app.models.market_data import NewsItem as NewsArticle
+from app.models.ai_insight import AIInsight
+from app.models.deal import Deal
+
+OHLCData = MarketData  # Alias for compatibility
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=1800)

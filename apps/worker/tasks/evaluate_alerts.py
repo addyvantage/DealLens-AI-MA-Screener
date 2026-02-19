@@ -17,12 +17,15 @@ logger = logging.getLogger(__name__)
 # Import models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api/src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api'))
 
-from models.companies import Company, OHLCData
-from models.deals import Deal
-from models.alerts import Alert, AlertHistory
-from models.news import NewsArticle
+from app.models.company import Company
+from app.models.market_data import MarketData
+from app.models.market_data import NewsItem as NewsArticle
+from app.models.deal import Deal
+from app.models.alert import Alert, AlertHistory
+
+OHLCData = MarketData  # Alias for compatibility
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=300)

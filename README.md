@@ -1,169 +1,85 @@
 # DealLens AI M&A Screener
 
-A comprehensive M&A deal screening platform with AI-powered analysis, featuring a Bloomberg Terminal-inspired interface. Production-ready with robust monitoring, security, and reliability features.
+A production-style async document analysis backend platform
+built to support long-running analyst workflows in M&A screening pipelines.
 
-## 🏗️ Architecture
+## 1. Runtime Service Overview
 
-This is a monorepo containing:
+M&A Screening Platform
+Async Document Analysis Runtime
+FastAPI + Celery Worker Execution Model
 
-- **apps/web** - Next.js frontend with Bloomberg Terminal-style UI (deployed on Vercel)
-- **apps/api** - FastAPI backend with ML/AI capabilities (deployed on Railway)
-- **apps/worker** - Background task processing with Celery (deployed on Railway)
-- **packages/db** - Shared database schema and utilities
-
-```
-┌─────────────────┐     ┌────────────────┐     ┌─────────────────┐
-│  Frontend       │     │  Backend API   │     │  Worker         │
-│  (Next.js)      │────▶│  (FastAPI)     │◀────│  (Celery)       │
-│  [Vercel]       │     │  [Railway]     │     │  [Railway]      │
-└─────────────────┘     └────────────────┘     └─────────────────┘
-                               │  ▲                     │
-                               │  │                     │
-                               ▼  │                     ▼
-                        ┌─────────────────┐    ┌─────────────────┐
-                        │  PostgreSQL DB  │    │  Redis Cache    │
-                        │  [Railway]      │    │  [Railway]      │
-                        └─────────────────┘    └─────────────────┘
+```mermaid
+graph LR
+    Client --> API
+    API --> Redis
+    Redis --> Worker[Celery Worker]
+    Worker --> Pipeline[Document Analysis Pipeline]
+    Pipeline --> Delivery[Result Delivery]
 ```
 
-## 🚀 Quick Start
+## 2. Analyst Screening Interface
 
-### Prerequisites
+![Analyst UI](docs/screenshots/deallens-frontend-ui.png)
 
-- Node.js 18.20.4 (specified in `.nvmrc`)
-- Python 3.11
-- Docker & Docker Compose
-- pnpm 10.14.0
+This interface demonstrates the async ingestion of screening requests. The analyst uploads deal documents which are processed non-blockingly. The UI updates in real-time as analysis completes, support a high-throughput analyst workflow where multiple deals can be screened in parallel.
 
-### Setup
+## 3. Backend API Surface
 
-1. **Clone and install dependencies**
-```bash
-git clone <your-repo>
-cd DealLens-AI-MA-Screener
-pnpm install
-```
+![Backend Swagger](docs/screenshots/deallens-backend-swagger.png)
 
-2. **Environment setup**
-```bash
-# Copy environment files for each service
-cp apps/api/.env.example apps/api/.env
-cp apps/worker/.env.example apps/worker/.env
-cp apps/web/.env.example apps/web/.env.local
-# Edit with your configuration
-```
+The capabilities include:
+- **Screening Job Submission**: Secure endpoints for uploading financial documents.
+- **Async Analysis Endpoints**: Polling or websocket-based status checks for long-running jobs.
+- **Health/Readiness Probes**: Kubernetes-standard `/healthz` and `/readyz` endpoints for liveness and readiness checks.
+- **Deployability Checks**: Integration with container orchestration checks.
 
-3. **Start infrastructure**
-```bash
-# Start PostgreSQL and Redis
-docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:15
-docker run -d --name redis -p 6379:6379 redis:7
-# Or use docker-compose
-pnpm run docker:up
-```
+## 4. Background Worker Runtime
 
-4. **Database setup**
-```bash
-pnpm run db:generate
-pnpm run db:push
-```
+![Worker Runtime](docs/screenshots/deallens-worker-runtime.png)
 
-5. **Start development servers**
-```bash
-# Start all services in parallel
-pnpm run dev
+The core of the system is the Celery execution model:
+- **Async Execution**: Decouples heavy document processing from the API response cycle.
+- **Long-running Tasks**: Handles PDF parsing, financial extraction, and LLM reasoning without timing out HTTP requests.
+- **Retryable Execution**: Tasks are designed to be idempotent and retryable in case of transient failures (e.g., LLM rate limits).
+- **Worker Isolation**: Processing logic is isolated from the request path, ensuring API responsiveness.
 
-# Or start each service individually
-# Terminal 1: API
-cd apps/api && uvicorn main:app --reload
+## 5. Runtime Logging + Observability
 
-# Terminal 2: Worker
-cd apps/worker && celery -A celery_app.app worker -B --loglevel=info
 
-# Terminal 3: Web
-pnpm --filter @deallens/web dev
-```
+The system is instrumented for production visibility:
+- **Structured Logging**: JSON-formatted logs for ingestion by Splunk/Datadog.
+- **Async Execution Visibility**: Trace IDs follow the request from API to Worker.
+- **Failure Traceability**: Detailed stack traces and error contexts for debugging production issues.
 
-## 📦 Services
+## 6. Health Monitoring
 
-- **Frontend (Next.js)**: http://localhost:3000
-- **API (FastAPI)**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **API Health**: http://localhost:8000/healthz
-- **API Readiness**: http://localhost:8000/readyz
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
-- **Metrics (Optional)**: http://localhost:8000/metrics (when enabled)
 
-## 🛠️ Development
+![Health Runtime](docs/screenshots/deallens-health-runtime.png)
 
-### Available Scripts
+Standardized health checks ensure:
+- **Service Readiness**: Verifies DB and Redis connections before accepting traffic.
+- **Runtime Liveness**: Detects deadlocks or frozen processes.
+- **System Deployability**: automated rollout gates in CI/CD pipelines.
 
-- `pnpm run dev` - Start all services in development mode
-- `pnpm run build` - Build all applications
-- `pnpm run lint` - Lint all code
-- `pnpm run test` - Run tests
-- `pnpm run db:generate` - Generate Prisma client
-- `pnpm run db:push` - Push schema changes to database
-- `pnpm run docker:up` - Start Docker containers
+## 7. Async Screening-Oriented Runtime Design
 
-### Project Structure
+This system supports:
+- **Long-running document analysis**: Optimized for multi-minute processing times.
+- **Async analyst workflows**: Fire-and-forget submission with eventual consistency.
+- **Service-to-service screening tasks**: API design suitable for programmatic integrations.
+- **Ingestion decoupled from processing**: Robust queuing handles traffic spikes without degradation.
+- **Background execution paths**: Dedicated compute resources for AI pipelines.
 
-```
-├── apps/
-│   ├── web/          # Next.js frontend
-│   ├── api/          # FastAPI backend
-│   └── worker/       # Celery worker
-├── packages/
-│   └── db/           # Database schema & utilities
-├── docker-compose.yml
-└── turbo.json
-```
+## 8. Integration Use Case
 
-## 🎨 Design System
+**Enterprise Deal Screening Pipelines**
 
-The UI is inspired by Bloomberg Terminal with:
-- Dark theme with financial data emphasis
-- Real-time data displays with API health monitoring
-- Professional trading interface aesthetics
-- Responsive design for desktop and tablet
-- Terminal-style command interface
+Example flow:
+Deal Upload -> Async Screening -> Risk Evaluation -> Analyst Dashboard
 
-## 📊 Features
-
-- M&A Deal Screening & Analysis
-- Company Financial Metrics
-- Market Data Visualization
-- AI-Powered Deal Recommendations
-- Real-time Data Processing
-- Advanced Filtering & Search
-
-## 🔒 Production Features
-
-- **Health Monitoring**: API and service health endpoints
-- **Reliability**: Idempotent tasks, retry mechanisms, circuit breakers
-- **Security**: JWT validation, rate limiting, CORS protection
-- **Observability**: Structured JSON logging, request tracing, metrics
-- **Cost Controls**: API usage tracking, budget enforcement
-- **CI/CD**: GitHub Actions workflows for quality control
-- **Documentation**: Comprehensive guides and setup instructions
-
-## 🔧 Tech Stack
-
-- **Frontend**: Next.js 15, React 18, TypeScript, Tailwind CSS
-- **Backend**: FastAPI, Python 3.11, Pydantic
-- **Database**: PostgreSQL 15, Prisma
-- **Cache/Queue**: Redis 7, Celery
-- **Infrastructure**: Docker, Railway, Vercel, pnpm workspaces, Turborepo
-- **Observability**: JSON logging, Prometheus metrics (optional)
-- **Security**: JWT, rate limiting, environment validation
-- **AI/ML**: OpenAI integration, NLP on news & filings
-
-## 📝 Documentation
-
-- [CHECKLIST.md](./CHECKLIST.md) - Comprehensive production checklist
-- [DEMO.md](./DEMO.md) - Step-by-step demo verification guide
-
----
-
-DealLens – An AI-powered M&A deal screener that automates investment banking workflows. Production-ready with enterprise-grade monitoring, security, and reliability features.
+Key use cases:
+- M&A pre-screening
+- Due diligence automation
+- Deal pipeline filtering
+- Financial document analysis

@@ -3,6 +3,10 @@ import logging
 from celery import Celery
 from celery.schedules import crontab
 from celery.signals import setup_logging, worker_ready
+import sys
+
+# Ensure API modules are importable
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../api'))
 
 # Get configuration from environment with validation
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")

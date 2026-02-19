@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 # Import models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api/src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../api'))
 
-from models.companies import Company
-from models.news import NewsArticle
+from app.models.company import Company
+from app.models.market_data import NewsItem as NewsArticle
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)

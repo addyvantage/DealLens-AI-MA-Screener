@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 # Import models (need to adjust import path based on your structure)
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../api/src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../api'))
 
-from models.companies import Company, OHLCData
+from app.models.company import Company
+from app.models.market_data import MarketData
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
@@ -87,13 +88,13 @@ def sync_company_prices(self, tickers: List[str]) -> Dict[str, Any]:
                         company.updated_at = datetime.utcnow()
                         
                         # Create OHLC record if it's a new trading period
-                        existing_ohlc = db.query(OHLCData).filter(
-                            OHLCData.company_id == company.id,
-                            OHLCData.date == datetime.fromisoformat(price_data["timestamp"].replace('Z', '+00:00')).date()
+                        existing_ohlc = db.query(MarketData).filter(
+                            MarketData.company_id == company.id,
+                            MarketData.date == datetime.fromisoformat(price_data["timestamp"].replace('Z', '+00:00')).date()
                         ).first()
                         
                         if not existing_ohlc:
-                            ohlc_record = OHLCData(
+                            ohlc_record = MarketData(
                                 id=generate_id("ohlc"),
                                 company_id=company.id,
                                 date=datetime.fromisoformat(price_data["timestamp"].replace('Z', '+00:00')),
@@ -257,13 +258,13 @@ def sync_daily_ohlc(self, tickers: List[str], days: int = 5) -> Dict[str, Any]:
                         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
                         
                         # Check if record already exists
-                        existing = db.query(OHLCData).filter(
-                            OHLCData.company_id == company.id,
-                            OHLCData.date == date_obj
+                        existing = db.query(MarketData).filter(
+                            MarketData.company_id == company.id,
+                            MarketData.date == date_obj
                         ).first()
                         
                         if not existing:
-                            ohlc_record = OHLCData(
+                            ohlc_record = MarketData(
                                 id=generate_id("ohlc"),
                                 company_id=company.id,
                                 date=date_obj,
@@ -301,8 +302,8 @@ def cleanup_old_ohlc_data(days_to_keep: int = 365) -> Dict[str, Any]:
     
     try:
         with get_db_session() as db:
-            deleted_count = db.query(OHLCData).filter(
-                OHLCData.date < cutoff_date
+            deleted_count = db.query(MarketData).filter(
+                MarketData.date < cutoff_date
             ).delete()
             
             db.commit()
