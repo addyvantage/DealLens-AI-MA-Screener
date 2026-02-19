@@ -31,8 +31,7 @@ This interface demonstrates the async ingestion of screening requests. The analy
 The capabilities include:
 - **Screening Job Submission**: Secure endpoints for uploading financial documents.
 - **Async Analysis Endpoints**: Polling or websocket-based status checks for long-running jobs.
-- **Health/Readiness Probes**: Kubernetes-standard `/healthz` and `/readyz` endpoints for liveness and readiness checks.
-- **Deployability Checks**: Integration with container orchestration checks.
+- **Health Monitoring**: Service exposes runtime liveness and readiness endpoints (e.g. `/healthz`, `/readyz`) for environment-level deployment validation and async pipeline initialization checks.
 
 ## 4. Background Worker Runtime
 
